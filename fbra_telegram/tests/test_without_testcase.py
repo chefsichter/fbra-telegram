@@ -1,10 +1,10 @@
 import sys
 import threading
 import time
-from client import TelegramClient
+from client import Client
 from test_keys import bot_token, chat_id
 
-client = TelegramClient(bot_token=bot_token, chat_id=chat_id, log_stderr=True)
+client = Client(bot_token=bot_token, chat_id=chat_id, log_stderr=True)
 client.start_loop()
 sys.stderr.write("An error was raised")
 time.sleep(1)

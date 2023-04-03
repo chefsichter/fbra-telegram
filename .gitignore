@@ -1,3 +1,9 @@
-/fbra-telegram/tests/test_keys.py
-/fbra-telegram/tests/config.ini
 .venv*
+/build/
+/dist/
+/fbra_telegram/tests/test_keys.py
+/fbra_telegram/config.ini
+/fbra_telegram/tests/config.ini
+/.python-version
+/Pipfile
+/Pipfile.lock

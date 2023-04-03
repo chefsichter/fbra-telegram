@@ -15,13 +15,13 @@ import telegram.error
 from telegram import BotCommand, KeyboardButton, ReplyKeyboardMarkup, Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ConversationHandler, MessageHandler, filters, ContextTypes
 
-from extras.config_parser import FBraConfigParser
-from extras.stderr_logger import StderrLogger
+from fbra_telegram.extras.config_parser import FBraConfigParser
+from fbra_telegram.extras.stderr_logger import StderrLogger
 
 LOGGER_NAME = "fbra-telegram"
 
 
-class TelegramClient:
+class Client:
     def __init__(self,
                  bot_token=None,
                  save_token=False,
@@ -54,7 +54,7 @@ class TelegramClient:
             self.app.add_error_handler(self.msgs.error_handler)
             self.main_thread = threading.main_thread()
             self.telegram_thread = None
-            self.msgs.double_log_msg("Bot initialized...")
+            # self.msgs.double_log_msg("Bot initialized...")
 
     def _build_application(self):
         loop = asyncio.new_event_loop()
@@ -127,7 +127,7 @@ class TelegramClient:
         self.loop.run_until_complete(self.app.initialize())
         self.loop.run_until_complete(self.updater.start_polling())  # one of updater.start_webhook/polling
         self.loop.run_until_complete(self.app.start())
-        self.msgs.double_log_msg("Bot update loop has started...")
+        # self.msgs.double_log_msg("Bot update loop has started...")
         self.loop.run_forever()
 
     def start_loop(self):
@@ -152,7 +152,7 @@ class TelegramClient:
             self.loop.close()
         self.app, self.bot, self.updater, self.loop = self._build_application()
         self.update_modules(self.app, self.bot)
-        self.msgs.double_log_msg("Bot update loop has stopped...")
+        # self.msgs.double_log_msg("Bot update loop has stopped...")
 
 
 class Messages(logging.Handler):
