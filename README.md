@@ -18,11 +18,13 @@ fbra-telegram is a wrapper around the 'https://github.com/python-telegram-bot/py
     pip install fbra-telegram
     ```
    
-## Quickstart
+## QuickStart
 
 ```python
 # Send a message to your bot.
 from fbra_telegram.client import Client
+# type '/start' in bot chat window immediately before initializing this python code.
+# After initialization the chat_id gets stored in the config.ini file 
 telegram = Client(bot_token=<TELEGRAM-TOKEN>)
 
 telegram.send_msg("Hello world.")
@@ -37,7 +39,7 @@ def foo():
 telegram.add_command("hello", foo)
 
 # Always set the 'telegram.start_loop()' at the end of your code
-# or after initilization of all commands.
+# or after initialization of all commands.
 telegram.start_loop()
 while True:
    time.sleep(0.1)
