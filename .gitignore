@@ -4,6 +4,7 @@
 /fbra_telegram/tests/test_keys.py
 /fbra_telegram/config.ini
 /fbra_telegram/tests/config.ini
+/fbra_telegram/examples/config.ini
 /.python-version
 /Pipfile
 /Pipfile.lock

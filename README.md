@@ -19,12 +19,16 @@ fbra-telegram is a wrapper around the 'https://github.com/python-telegram-bot/py
     ```
    
 ## QuickStart
-
 ```python
+# This example code is under examples/quick_start.py
 # Send a message to your bot.
+import time
 from fbra_telegram.client import Client
-# type '/start' in bot chat window immediately before initializing this python code.
-# After initialization the chat_id gets stored in the config.ini file 
+```
+   > type `/start` in telegram chat bot window `immediately before initializing Client(...) code`.
+   
+```python
+# After initialization of the Client() the chat_id gets stored in the config.ini file
 telegram = Client(bot_token=<TELEGRAM-TOKEN>)
 
 telegram.send_msg("Hello world.")
@@ -54,7 +58,7 @@ telegram.stop_loop()
 # Add a confirmation command to your bot.
 ...
 def important():
-    print("You wanted to run this function.")
+    telegram.send_msg("You wanted to run this function.")
     
 telegram.add_confirmation_command("important", important)
 ...
@@ -84,7 +88,10 @@ def command_with_args(update, context):
 - log_stderr=False # redirect stderr output to display in bot
 - other_logger=None  # redirect other_logger output to display in bot
 ```
-
+## Exceptions
+>This error happens if you run more than one Client connection.
+> 
+![error-getUpdates_2023-04-03_21-16-18.jpg](fbra_telegram%2Fexamples%2Ferror-getUpdates_2023-04-03_21-16-18.jpg)
 ## Donations
 ```python
 BTC: 'bc1qed0e8ej4nmyz88sy5zzwvrjfkft0y5aca7cqyw'
