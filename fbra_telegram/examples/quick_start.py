@@ -35,7 +35,7 @@ telegram.add_command("what", command_with_args)
 # Always set the 'telegram.start_loop()' at the end of your code
 # or after initialization of all commands.
 telegram.start_loop()
-time.sleep(120)
+time.sleep(5*60)
 
 # stop the loop at the end of your code or if you don't need
 # 'telegram commands' anymore. It will need ca. 10 seconds to shutdown.

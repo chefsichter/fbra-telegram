@@ -43,10 +43,10 @@ def foo():
 telegram.add_command("hello", foo)
 
 # Always set the 'telegram.start_loop()' at the end of your code
-# or after initialization of all commands.
+# or after initialization of all commands. The loop is a background thread,
+# that checks if you entered a command.
 telegram.start_loop()
-while True:
-   time.sleep(0.1)
+time.sleep(5*60)
 
 # stop the loop at the end of your code or if you don't need 
 # 'telegram commands' anymore. It will need ca. 10 seconds to shutdown.

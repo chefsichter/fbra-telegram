@@ -215,7 +215,7 @@ class Messages(logging.Handler):
                 time.sleep(1)
 
     def double_log_msg(self, msg):
-        self.console.debug(msg)
+        self.console.info(msg)
         self.send_msg(msg)
 
     def emit(self, record):
