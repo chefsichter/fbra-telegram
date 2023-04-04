@@ -128,6 +128,7 @@ class Client:
 
     def help__command(self, update, context):
         commands = self.cmds.get_commands_from_dispatcher()
+        commands.sort()
         com_str = ""
         for c in commands:
             com_str += "\n/" + c
