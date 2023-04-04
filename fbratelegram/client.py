@@ -46,7 +46,7 @@ class Client:
         if log_stderr:
             self.msgs.addHandler_to_stderr()
         if other_logger:
-            other_logger.addHandler(self)
+            other_logger.addHandler(self.msgs)
         # initialize asyncio python-telegram-bot
         if chat_id:
             self.chat_id = chat_id
