@@ -59,6 +59,7 @@ class Client:
         self.app.add_error_handler(self.msgs.error_handler)
         self.main_thread = threading.main_thread()
         self.telegram_thread = None
+        self.task = None
         # self.msgs.double_log_msg("Bot initialized...")
 
     def _build_application(self):
@@ -80,7 +81,8 @@ class Client:
 
     def run_async(self, func, *args, **kwargs):
         if self.loop.is_running():
-            return self.loop.create_task(func(*args, **kwargs))
+            self.task = self.loop.create_task(func(*args, **kwargs))
+            return self.task
             # return asyncio.run_coroutine_threadsafe(func(*args, **kwargs), self.loop)
         else:
             return self.loop.run_until_complete(func(*args, **kwargs))
@@ -104,8 +106,10 @@ class Client:
         executable = sys.executable
         os.execv(executable, ['python3'] + sys.argv)
 
-    def restart__command(self, update, context):
-        self.msgs.double_log_msg("Bot is restarting...")
+    async def restart__con_command(self, update, context):
+        msg = "Bot is restarting..."
+        self.msgs.console.info(msg)
+        await self.bot.send_message(self.chat_id, msg)
         threading.Thread(target=self._stop_helper_func,
                          args=(self._restart_process,),
                          daemon=False).start()
@@ -114,8 +118,10 @@ class Client:
         self.msgs.double_log_msg("Bot stopped.")
         os.kill(os.getpid(), signal.SIGTERM)
 
-    def stop__command(self, update, context):
-        self.msgs.double_log_msg("Bot is stopping...")
+    async def stop__con_command(self, update, context):
+        msg = "Bot is stopping..."
+        self.msgs.console.info(msg)
+        await self.bot.send_message(self.chat_id, msg)
         threading.Thread(target=self._stop_helper_func,
                          args=(self._terminate_process,),
                          daemon=False).start()
@@ -134,8 +140,12 @@ class Client:
         self.loop.run_until_complete(self.app.start())
         # self.msgs.double_log_msg("Bot update loop has started...")
         self.loop.run_forever()
+        # time.sleep() required: after my opinion, because (main-)thread has to be running until new asyncio loop is set
+        # https://stackoverflow.com/questions/70673175/runtimeerror-cannot-schedule-new-futures-after-interpreter-shutdown
+        time.sleep(2)
 
-    def start_loop(self, blocking=False):
+    def start_loop(self, blocking=True):
+        self.cmds.set_up_all_commands()
         if blocking:
             self.telegram_thread = threading.current_thread()
             self._app_run_polling()
@@ -147,10 +157,17 @@ class Client:
         self.cmds.client, self.cmds.app = (self, app)
         self.msgs.client, self.msgs.bot = (self, bot)
 
+    def wait_on_loop_stopping(self, time_out):
+        start = time.monotonic()
+        while self.loop.is_running():
+            delta = time.monotonic() - start
+            if delta > time_out:
+                break
+            time.sleep(0.1)
+
     def stop_loop(self):
-        time.sleep(2)
         self.loop.stop()
-        self.telegram_thread.join()
+        self.wait_on_loop_stopping(time_out=60)
         try:
             if self.updater.running:
                 self.loop.run_until_complete(self.updater.stop())
@@ -249,24 +266,35 @@ class Messages(logging.Handler):
 
 class Commands:
     FBRA_COMMAND = "__command"
+    FBRA_CON_COMMAND = "__con_command"
     CONFIRM_MSG = "Shall i run the following command?"
 
     def __init__(self, client, app: telegram.ext.Application, valid_chat_filter):
         self.client = client
         self.app = app
         self.valid_chat_filter = valid_chat_filter
-        self.set_up_all_commands()
 
-    def _add_simple_commands_to_app(self):
+    def gather_cmds(self, cmd_type):
         cmds_in_client = {method: self.client.__class__ for method in self.client.__class__.__dict__.keys()
-                          if method.endswith(self.FBRA_COMMAND)}
+                          if method.endswith(cmd_type)}
         cmds_in_cmds = {method: self.__class__ for method in self.__class__.__dict__.keys()
                         if method.endswith(self.FBRA_COMMAND)}
         commands = dict(cmds_in_cmds, **cmds_in_client)
+        return commands
+
+    def _add_commands_to_app(self):
+        commands = self.gather_cmds(self.FBRA_COMMAND)
         for method, cls in commands.items():
             command = method.replace(self.FBRA_COMMAND, '')
             callback = getattr(cls, method)
             self.add_command(command, callback)
+
+    def _add_confirmation_commands_to_app(self):
+        commands = self.gather_cmds(self.FBRA_CON_COMMAND)
+        for method, cls in commands.items():
+            command = method.replace(self.FBRA_CON_COMMAND, '')
+            callback = getattr(cls, method)
+            self.add_confirmation_command(command, callback)
 
     def get_commands_from_dispatcher(self):
         commands = []
@@ -286,7 +314,8 @@ class Commands:
         self.client.run_async(self.app.bot.set_my_commands, com_obj_list)
 
     def set_up_all_commands(self):
-        self._add_simple_commands_to_app()
+        self._add_commands_to_app()
+        self._add_confirmation_commands_to_app()
         self._inform_server_about_cmds()
 
     @staticmethod
@@ -296,6 +325,17 @@ class Commands:
             return True
         except KeyError:
             return False
+
+    def _create_async_callback_func(self, func):
+        paras = signature(func).parameters
+
+        async def callback_func(update, context):
+            if len(paras) == 3:
+                await func(self.client, update, context)
+            else:
+                await func(update, context)
+
+        return callback_func
 
     def _create_callback_func(self, func):
         paras = signature(func).parameters
@@ -326,7 +366,7 @@ class Commands:
             callback_func = self._create_callback_func(callback)
             callback_func = self._wrap_func_with_async(callback_func)
         else:
-            callback_func = callback
+            callback_func = self._create_async_callback_func(callback)
         self.app.add_handler(CommandHandler(command=command,
                                             callback=callback_func,
                                             filters=self.valid_chat_filter))
@@ -360,9 +400,12 @@ class Commands:
     def add_confirmation_command(self, command, callback, confirmation_msg=None):
         if confirmation_msg:
             self.CONFIRM_MSG = confirmation_msg
-        callback_func = self._create_callback_func(callback)
-        callback_func = self._create_confirmation_func(callback_func)
-        callback_func = self._wrap_func_with_async(callback_func)
+        if not inspect.iscoroutinefunction(callback):
+            callback_func = self._create_callback_func(callback)
+            callback_func = self._create_confirmation_func(callback_func)
+            callback_func = self._wrap_func_with_async(callback_func)
+        else:
+            callback_func = self._create_async_callback_func(callback)
         conv_handler = ConversationHandler(
             entry_points=[CommandHandler(command=command,
                                          callback=self.show_buttons_yes_or_no,

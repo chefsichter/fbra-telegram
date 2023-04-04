@@ -43,15 +43,10 @@ def foo():
 
 telegram.add_command("hello", foo)
 
-# Always set the 'telegram.start_loop()' at the end of your code
-# or after initialization of all commands. The loop is a background thread,
-# that checks if you entered a command.
-telegram.start_loop()
-time.sleep(5*60)
+# Always set the start_loop(blocking=True) at the end of
+# your code. You need it, that the commands work.
+telegram.start_loop(blocking=True)
 
-# stop the loop at the end of your code or if you don't need 
-# 'telegram commands' anymore. It will need ca. 10 seconds to shutdown.
-telegram.stop_loop() 
 ```
 
 
@@ -75,8 +70,21 @@ def command_with_args(update, context):
         arg = 'crazy'
     telegram.double_log_msg(f"This is {arg} stuff my friend.")
     
-    telegram.add_command("what", command_with_args)
+ telegram.add_command("what", command_with_args)
 ...
+```
+```python
+# If blocking is set to False, the telegram loop works
+# as long as the main thread is alive.
+telegram.start_loop(blocking=False)
+# <Your code>
+# If you don't need commands anymore, you can stop the loop.
+telegram.stop_loop()
+```
+```python
+# predefined functions are:
+/start, /stop, /restart and /help
+```
 ```
 ## Client Configuration
 ```python
@@ -88,6 +96,8 @@ def command_with_args(update, context):
 - log_lvl=logging.DEBUG # set the loggin level of you bot
 - log_stderr=False # redirect stderr output to display in bot
 - other_logger=None  # redirect other_logger output to display in bot
+- encrypt_vars=False # if set to True, you can give an key [with the help of environment_var] to encrypt token and chat_id
+- environment_var # name of the environment variable
 ```
 ## Exceptions
 >This error happens if you run more than one Client connection.
