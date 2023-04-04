@@ -102,7 +102,7 @@ telegram.stop_loop()
 ## Exceptions
 >This error happens if you run more than one Client connection.
 > 
-![error-getUpdates_2023-04-03_21-16-18.jpg](fbra_telegram%2Fexamples%2Ferror-getUpdates_2023-04-03_21-16-18.jpg)
+![error-getUpdates_2023-04-03_21-16-18.jpg](fbratelegram%2Fexamples%2Ferror-getUpdates_2023-04-03_21-16-18.jpg)
 ## Donations
 ```python
 BTC: 'bc1qed0e8ej4nmyz88sy5zzwvrjfkft0y5aca7cqyw'
