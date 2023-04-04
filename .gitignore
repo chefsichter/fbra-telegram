@@ -1,10 +1,12 @@
 .venv*
 /build/
 /dist/
-/fbra_telegram/tests/test_keys.py
-/fbra_telegram/config.ini
-/fbra_telegram/tests/config.ini
-/fbra_telegram/examples/config.ini
+/fbra_telegram.egg-info/
+/fbratelegram/tests/test_keys.py
+/fbratelegram/config.ini
+/fbratelegram/tests/config.ini
+/fbratelegram/examples/config.ini
 /.python-version
 /Pipfile
 /Pipfile.lock
+/requirements.txt

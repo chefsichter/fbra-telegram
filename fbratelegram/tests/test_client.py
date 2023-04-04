@@ -3,11 +3,10 @@ import sys
 import threading
 import time
 from unittest import TestCase
-from unittest.mock import patch, Mock, MagicMock
+from unittest.mock import patch, Mock
 
-from client import Client
-
-from extras.config_parser import FBraConfigParser
+from fbratelegram.client import Client
+from fbratelegram.extras.config_parser import FBraConfigParser
 from test_keys import bot_token, chat_id
 
 
@@ -126,8 +125,8 @@ class TestTelegramClient(TestCase):
         client.stop_loop()
 
     def test_readme(self):
-        from fbra_telegram.client import Client
-        telegram = Client(bot_token=bot_token)
+        from fbratelegram.client import Client
+        telegram = Client(bot_token=bot_token, encrpyt_vars=True)
         telegram.send_msg("Hello world.")
 
         def foo():
@@ -153,6 +152,10 @@ class TestTelegramClient(TestCase):
         while True:
             time.sleep(0.1)
 
-        telegram.st
+    def test_config_ini(self):
+        telegram = Client(bot_token=bot_token, encrpyt_vars=True)
+        # telegram = Client(bot_token=bot_token, save_token=True  )
+        # telegram = Client(environment_var="TELEGRAM_FERNET")
+        telegram.send_msg("Hello world.")
 
 

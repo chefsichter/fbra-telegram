@@ -15,46 +15,51 @@ import telegram.error
 from telegram import BotCommand, KeyboardButton, ReplyKeyboardMarkup, Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ConversationHandler, MessageHandler, filters, ContextTypes
 
-from fbra_telegram.extras.config_parser import FBraConfigParser
-from fbra_telegram.extras.stderr_logger import StderrLogger
+from fbratelegram.extras.config_parser import FBraConfigParser
+from fbratelegram.extras.stderr_logger import StderrLogger
 
 LOGGER_NAME = "fbra-telegram"
 
 
 class Client:
     def __init__(self,
-                 bot_token=None,
+                 bot_token="",
                  save_token=False,
                  chat_id=None,
                  log_lvl=logging.DEBUG,
                  log_stderr=False,
-                 other_logger=None):
+                 other_logger=None,
+                 encrpyt_vars=False,
+                 environment_var=""):
         super().__init__()
         self.modul = f"{self.__class__.__name__}"
-        self.ini = FBraConfigParser()
-        self.token = bot_token if bot_token is not None else self.ini.get_token()
+        self.ini = FBraConfigParser(encrypt=encrpyt_vars, environment_var=environment_var)
+        self.token = bot_token if bot_token != "" else self.ini.get_token()
+        if self.token == "":
+            print(f"Error in Modul {self.modul}: You have to set the telegram token as an argument or update the "
+                  f"token value in config.ini.")
+            os.kill(os.getpid(), signal.SIGTERM)
         self.app, self.bot, self.updater, self.loop = self._build_application()
         self.msgs = Messages(client=self, bot=self.bot, ini=self.ini, log_lvl=log_lvl)
-        if self.token is None:
-            self.msgs.console.warning(f"{self.modul}: You have to set the telegram token as an argument or update the "
-                                      f"token value in config.ini.")
+        if save_token:
+            self.ini.set_token(self.token)
+        if log_stderr:
+            self.msgs.addHandler_to_stderr()
+        if other_logger:
+            other_logger.addHandler(self)
+        # initialize asyncio python-telegram-bot
+        if chat_id:
+            self.chat_id = chat_id
         else:
-            if save_token:
-                self.ini.set_token(self.token)
-            if log_stderr:
-                self.msgs.addHandler_to_stderr()
-            if other_logger:
-                other_logger.addHandler(self)
-            # initialize asyncio python-telegram-bot
-            if chat_id:
-                self.chat_id = chat_id
-            else:
-                self.chat_id = self.msgs.restore_chat_id()
-            self.cmds = Commands(client=self, app=self.app, valid_chat_filter=self.msgs.valid_chat_filter)
-            self.app.add_error_handler(self.msgs.error_handler)
-            self.main_thread = threading.main_thread()
-            self.telegram_thread = None
-            # self.msgs.double_log_msg("Bot initialized...")
+            self.chat_id = self.msgs.restore_chat_id()
+        if encrpyt_vars:
+            self.ini.set_token(self.token)
+            self.ini.set_chat_id(self.chat_id)
+        self.cmds = Commands(client=self, app=self.app, valid_chat_filter=self.msgs.valid_chat_filter)
+        self.app.add_error_handler(self.msgs.error_handler)
+        self.main_thread = threading.main_thread()
+        self.telegram_thread = None
+        # self.msgs.double_log_msg("Bot initialized...")
 
     def _build_application(self):
         loop = asyncio.new_event_loop()
@@ -122,7 +127,7 @@ class Client:
             com_str += "\n/" + c
         self.msgs.send_msg(msg=com_str)
 
-    def _app_run_polling_in_thread(self):
+    def _app_run_polling(self):
         asyncio.set_event_loop(self.loop)
         self.loop.run_until_complete(self.app.initialize())
         self.loop.run_until_complete(self.updater.start_polling())  # one of updater.start_webhook/polling
@@ -130,9 +135,13 @@ class Client:
         # self.msgs.double_log_msg("Bot update loop has started...")
         self.loop.run_forever()
 
-    def start_loop(self):
-        self.telegram_thread = threading.Thread(target=self._app_run_polling_in_thread, daemon=False)
-        self.telegram_thread.start()
+    def start_loop(self, blocking=False):
+        if blocking:
+            self.telegram_thread = threading.current_thread()
+            self._app_run_polling()
+        else:
+            self.telegram_thread = threading.Thread(target=self._app_run_polling, daemon=False)
+            self.telegram_thread.start()
 
     def update_modules(self, app, bot):
         self.cmds.client, self.cmds.app = (self, app)
@@ -166,8 +175,6 @@ class Messages(logging.Handler):
         self._initialize_bot_logger()
         self.default_format = '%(asctime)s - %(levelname)s - %(name)s - %(message)s'
         self.console = self._initialize_console_logger()
-        if not self.ini.read_config():
-            self.ini.create_config_file()
         self.updates = self.client.run_async(self.bot.get_updates)
         self.chat_id = self.restore_chat_id()
         self.valid_chat_filter = filters.COMMAND & filters.Chat(chat_id=int(self.chat_id))
@@ -203,16 +210,11 @@ class Messages(logging.Handler):
         stdr_logger.logger.addHandler(self)  # will output stderr to the bot
 
     def send_msg(self, msg, **kwargs):
-        try:
-            if len(msg) > 4096:
-                for x in range(0, len(msg), 4096):
-                    self.client.run_async(self.bot.send_message, self.chat_id, msg[x:x + 4096], **kwargs)
-            else:
-                self.client.run_async(self.bot.send_message, self.chat_id, msg, **kwargs)
-        except telegram.error.TelegramError as error:
-            self._double_log_error(error)
-            if isinstance(error, (telegram.error.TimedOut, telegram.error.NetworkError)):  # "Bad Gateway", "Timed out"
-                time.sleep(1)
+        if len(msg) > 4096:
+            for x in range(0, len(msg), 4096):
+                self.client.run_async(self.bot.send_message, self.chat_id, msg[x:x + 4096], **kwargs)
+        else:
+            self.client.run_async(self.bot.send_message, self.chat_id, msg, **kwargs)
 
     def double_log_msg(self, msg):
         self.console.info(msg)
@@ -232,16 +234,17 @@ class Messages(logging.Handler):
         err_str = f"{self.modul}: The following error was raised: \n{tb_string}"
         return err_str
 
-    def _double_log_error(self, error):
+    async def error_handler(self, update, context):
+        err = context.error
         try:
-            err_str = self._create_err_string(error)
+            err_str = self._create_err_string(err)
             self.console.error(err_str)
-            self.send_msg(str(error))
+            self.send_msg(str(err))
+        except telegram.error.TelegramError as err:
+            if isinstance(err, (telegram.error.TimedOut, telegram.error.NetworkError)):  # "Bad Gateway", "Timed out"
+                time.sleep(1)
         except Exception:
             pass
-
-    async def error_handler(self, update, context):
-        self._double_log_error(context.error)
 
 
 class Commands:

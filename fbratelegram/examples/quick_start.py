@@ -1,12 +1,11 @@
 # Send a message to your bot.
 import time
 
-from fbra_telegram.client import Client
-from tests.test_keys import bot_token
+from fbratelegram.client import Client
 
 # type '/start' in bot chat window immediately before initializing this python code.
 # After initialization the chat_id gets stored in the config.ini file
-telegram = Client(bot_token=bot_token)
+telegram = Client(bot_token="<BOT_TOKEN>")
 
 telegram.send_msg("Hello world.")
 

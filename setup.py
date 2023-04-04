@@ -13,7 +13,7 @@ setup(
     long_description=LONG_DESCRIPTION,
     packages=find_packages(),
     python_requires='>=3.10',
-    install_requires=["python-telegram-bot[ext]"],
+    install_requires=["python-telegram-bot[ext]", "fbra-crypto"],
 
     keywords=['python', 'python-telegram-bot', 'wrapper'],
     classifiers=[

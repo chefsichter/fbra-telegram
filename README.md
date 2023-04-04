@@ -19,11 +19,12 @@ fbra-telegram is a wrapper around the 'https://github.com/python-telegram-bot/py
     ```
    
 ## QuickStart
+
 ```python
 # This example code is under examples/quick_start.py
 # Send a message to your bot.
 import time
-from fbra_telegram.client import Client
+from fbratelegram.client import Client
 ```
    > type `/start` in telegram chat bot window `immediately before initializing Client(...) code`.
    
