@@ -85,15 +85,14 @@ telegram.stop_loop()
 # predefined functions are:
 /info, /stop, /restart and /help
 ```
-```
 ## Client Configuration
-```python
+```
 **kwargs of Client:
 ----------------------------
 - bot_token=<TELEGRAM-TOKEN>  # is required to allow a connection to a bot
 - save_token=False # if you set it to True, it will save your token in config.ini - file for easier use
 - chat_id=None # provide chat_id for specific chat
-- log_lvl=logging.DEBUG # set the loggin level of you bot
+- log_lvl=logging.DEBUG # set the logging level of you bot
 - log_stderr=False # redirect stderr output to display in bot
 - other_logger=None  # redirect other_logger output to display in bot
 - encrypt_vars=False # if set to True, you can give an key [with the help of environment_var] to encrypt token and chat_id
