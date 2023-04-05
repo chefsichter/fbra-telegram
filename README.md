@@ -83,7 +83,7 @@ telegram.stop_loop()
 ```
 ```python
 # predefined functions are:
-/start, /stop, /restart and /help
+/info, /stop, /restart and /help
 ```
 ```
 ## Client Configuration

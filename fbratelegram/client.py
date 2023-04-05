@@ -94,7 +94,7 @@ class Client:
         self.msgs.double_log_msg(msg)
 
     @staticmethod
-    async def start__command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def info__command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(chat_id=update.effective_chat.id, text="Bot is running.")
 
     def _stop_helper_func(self, helper_func):
@@ -128,7 +128,6 @@ class Client:
 
     def help__command(self, update, context):
         commands = self.cmds.get_commands_from_dispatcher()
-        commands.sort()
         com_str = ""
         for c in commands:
             com_str += "\n/" + c
@@ -274,6 +273,7 @@ class Commands:
         self.client = client
         self.app = app
         self.valid_chat_filter = valid_chat_filter
+        self.handlers = {}
 
     def gather_cmds(self, cmd_type):
         cmds_in_client = {method: self.client.__class__ for method in self.client.__class__.__dict__.keys()
@@ -283,14 +283,14 @@ class Commands:
         commands = dict(cmds_in_cmds, **cmds_in_client)
         return commands
 
-    def _add_commands_to_app(self):
+    def _add_commands_to_dict(self):
         commands = self.gather_cmds(self.FBRA_COMMAND)
         for method, cls in commands.items():
             command = method.replace(self.FBRA_COMMAND, '')
             callback = getattr(cls, method)
             self.add_command(command, callback)
 
-    def _add_confirmation_commands_to_app(self):
+    def _add_confirmation_commands_to_dict(self):
         commands = self.gather_cmds(self.FBRA_CON_COMMAND)
         for method, cls in commands.items():
             command = method.replace(self.FBRA_CON_COMMAND, '')
@@ -314,9 +314,15 @@ class Commands:
             com_obj_list.append(com_obj)
         self.client.run_async(self.app.bot.set_my_commands, com_obj_list)
 
+    def _add_all_handlers_from_dict_to_app(self):
+        sorted_handlers = dict(sorted(self.handlers.items()))
+        for cmd, handler in sorted_handlers.items():
+            self.app.add_handler(handler)
+
     def set_up_all_commands(self):
-        self._add_commands_to_app()
-        self._add_confirmation_commands_to_app()
+        self._add_commands_to_dict()
+        self._add_confirmation_commands_to_dict()
+        self._add_all_handlers_from_dict_to_app()
         self._inform_server_about_cmds()
 
     @staticmethod
@@ -368,9 +374,10 @@ class Commands:
             callback_func = self._wrap_func_with_async(callback_func)
         else:
             callback_func = self._create_async_callback_func(callback)
-        self.app.add_handler(CommandHandler(command=command,
-                                            callback=callback_func,
-                                            filters=self.valid_chat_filter))
+        cmd_handler = CommandHandler(command=command,
+                                     callback=callback_func,
+                                     filters=self.valid_chat_filter)
+        self.handlers.update({command: cmd_handler})
 
     async def show_buttons_yes_or_no(self, update, context):
         buttons = ReplyKeyboardMarkup([[KeyboardButton("Yes"), KeyboardButton('No')]],
@@ -417,7 +424,7 @@ class Commands:
             },
             fallbacks=[CommandHandler('end_conversation', self.end_conversation_handler)],
         )
-        self.app.add_handler(conv_handler)
+        self.handlers.update({command: conv_handler})
 
     def add_reply_to_command(self, obj, command):
         callback = getattr(obj, f"{command}")

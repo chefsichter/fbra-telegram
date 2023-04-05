@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-VERSION = '0.0.5'
+VERSION = '0.0.6'
 DESCRIPTION = 'Send Messages to Telegram'
 LONG_DESCRIPTION = 'Wrapper around the python-telegram-bot to use in threads'
 
